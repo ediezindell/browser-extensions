@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Slack勤怠入力ツール (API版)",
+  "version": "1.0.0",
+  "description": "Slack APIから投稿時間を取得して勤怠サイトへ入力します",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://slack.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}

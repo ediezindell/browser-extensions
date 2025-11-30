@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      width: 350px;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    /* ヘッダーとタブ */
+    header {
+      background: #4a154b;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1rem;
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    .tab-btn:hover {
+      color: white;
+      text-decoration: underline;
+    }
+
+    .tab-btn.active {
+      color: white;
+      font-weight: bold;
+      border-bottom: 2px solid white;
+    }
+
+    /* コンテンツエリア */
+    .container {
+      padding: 15px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* 入力フォーム */
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 0.75rem;
+      color: #555;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .help-text {
+      font-size: 0.6875rem;
+      color: #666;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* ボタン */
+    button.primary {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      cursor: pointer;
+      background: #007a5a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.875rem;
+    }
+
+    button.primary:hover {
+      background: #006c4f;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      cursor: pointer;
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* ログ・結果表示 */
+    #statusArea {
+      margin-top: 15px;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #eee;
+      text-align: center;
+    }
+
+    #timesDisplay {
+      font-size: 1.125rem;
+      font-weight: bold;
+      color: #4a154b;
+      margin: 5px 0;
+    }
+
+    pre#logArea {
+      margin-top: 10px;
+      font-size: 0.625rem;
+      color: #666;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .error {
+      color: #d9534f;
+    }
+
+    /* 手順リスト */
+    ol {
+      padding-left: 20px;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #444;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    a {
+      color: #1264a3;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Slack勤怠ツール</h1>
+    <div>
+      <button id="tabMain" class="tab-btn active">実行</button>
+      <button id="tabSettings" class="tab-btn">設定・ヘルプ</button>
+    </div>
+  </header>
+
+  <div id="viewMain" class="container">
+    <label>対象日付</label>
+    <input type="date" id="targetDate" />
+
+    <div id="statusArea">
+      <div style="font-size: 0.6875rem; color: #888">取得結果</div>
+      <div id="timesDisplay">- : -</div>
+    </div>
+
+    <button id="fetchBtn" class="primary">① Slackから取得</button>
+    <button id="fillBtn" class="secondary" disabled>
+      ② 勤怠サイトに入力
+    </button>
+
+    <pre id="logArea"></pre>
+  </div>
+
+  <div id="viewSettings" class="container hidden">
+    <div style="
+          background: #fff3cd;
+          padding: 10px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          margin-bottom: 10px;
+        ">
+      初めての方は、以下の手順で設定を行ってください。
+    </div>
+
+    <label>1. Slack User Token (xoxp-...)</label>
+    <input type="password" id="token" placeholder="xoxp-..." />
+    <div class="help-text">
+      Slack APIページでアプリを作成し、<code>channels:history</code>
+      などの権限を付与して発行されたUser OAuth Tokenを入力してください。
+    </div>
+
+    <label>2. Channel ID</label>
+    <input type="text" id="channelId" placeholder="C012345..." />
+    <div class="help-text">
+      勤怠報告をしているチャンネルをブラウザで開いたときのURL末尾です。<br />
+      例: <code>.../client/T0000/C012345</code> の <b>C012345</b> 部分。
+    </div>
+
+    <button id="saveBtn" class="primary">設定を保存する</button>
+
+    <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0" />
+
+    <div style="font-size: 0.75rem; font-weight: bold">詳しい準備手順:</div>
+    <ol>
+      <li>
+        <a href="https://api.slack.com/apps" target="_blank">Slack API</a>
+        にアクセスし「Create New App」を押す。
+      </li>
+      <li>「From scratch」を選び、適当な名前とワークスペースを選択。</li>
+      <li>
+        左メニュー「OAuth & Permissions」で、User Token Scopesに
+        <code>channels:history</code> を追加。
+      </li>
+      <li>
+        「Install to Workspace」を押し、発行された
+        <b>xoxp-...</b> から始まるトークンをコピーして貼り付ける。
+      </li>
+    </ol>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
