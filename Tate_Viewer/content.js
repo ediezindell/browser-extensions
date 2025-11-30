@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // ------------------------------------
 
     if (!htmlContent.trim()) {
-      alert("縦書きで読みたいテキストを選択してください");
+      alert("読みたいテキストを選択してください");
       return;
     }
 

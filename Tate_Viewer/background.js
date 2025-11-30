@@ -1,7 +1,7 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "openFloatingViewer",
-    title: "縦書きビューアで読む",
+    title: "NovelViewerで読む",
     contexts: ["selection"],
   });
 });
