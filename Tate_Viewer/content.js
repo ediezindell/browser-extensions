@@ -1,61 +1,65 @@
 // content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // background.js から "open_viewer" という合図が来たら動く
   if (request.action === "open_viewer") {
-    // 1. テキストの取得
-    let text = request.text;
-    // 右クリック以外（アイコンクリック等）でテキストが空なら、現在選択中の文字をとる
-    if (!text) {
-      text = window.getSelection().toString().trim();
+    // --- ★修正：HTML構造ごと取得する処理 ---
+    const selection = window.getSelection();
+    let htmlContent = "";
+
+    if (selection.rangeCount > 0) {
+      // 選択範囲を「DOMの断片」としてクローン取得
+      const range = selection.getRangeAt(0);
+      const fragment = range.cloneContents();
+
+      // 一時的なdivに入れてinnerHTMLとして取り出す
+      const div = document.createElement("div");
+      div.appendChild(fragment);
+      htmlContent = div.innerHTML;
     }
-    if (!text) {
+    // ------------------------------------
+
+    if (!htmlContent.trim()) {
       alert("縦書きで読みたいテキストを選択してください");
       return;
     }
 
-    // 2. 既に開いていたら一度消す（リセット）
+    // 2. 既存削除
     const existingFrame = document.getElementById("tate-viewer-iframe");
-    if (existingFrame) {
-      existingFrame.remove();
-    }
+    if (existingFrame) existingFrame.remove();
 
-    // 3. Iframeを作成（これが「Shadow DOM」の代わりの隔離カプセル）
+    // 3. Iframe作成
     const iframe = document.createElement("iframe");
     iframe.id = "tate-viewer-iframe";
-    // ライブラリのファイルを読み込む
     iframe.src = chrome.runtime.getURL("viewer/index.html");
 
-    // 4. フローティング表示のスタイル（画面いっぱいに重ねる）
     Object.assign(iframe.style, {
       position: "fixed",
       top: "0",
       left: "0",
-      width: "100%",
-      height: "100%",
+      width: "100vw",
+      height: "100vh",
       border: "none",
-      zIndex: "2147483647", // 最前面
-      background: "transparent", // 背景はライブラリ側に任せる
+      zIndex: "2147483647",
+      backgroundColor: "transparent",
     });
 
     document.body.appendChild(iframe);
 
-    // 5. Iframeの読み込み完了を待ってから、テキストを送る
+    // 4. 通信 (ロード完了後に HTML を送信)
     iframe.onload = () => {
-      // iframeの中にある adapter.js に向かってメッセージを投げる
       iframe.contentWindow.postMessage(
-        { type: "RENDER_TEXT", text: text },
+        { type: "RENDER_TEXT", html: htmlContent },
         "*",
       );
-
-      // 念のためフォーカスを移す（キー操作のため）
       iframe.focus();
     };
 
-    // 6. Iframeの中から「閉じる」合図が来たら、自分（iframe）を消す
-    window.addEventListener("message", (event) => {
+    // 5. 閉じる処理
+    const closeListener = (event) => {
       if (event.data.type === "CLOSE_VIEWER") {
         iframe.remove();
+        window.removeEventListener("message", closeListener);
       }
-    });
+    };
+    window.addEventListener("message", closeListener);
   }
 });
