@@ -1,13 +1,24 @@
 {
   "manifest_version": 3,
   "name": "縦書きビューア",
-  "version": "1.1",
-  "description": "ブラウザで選択したテキストを縦書きで表示します。",
-  "permissions": ["activeTab", "scripting", "contextMenus"],
+  "version": "4.2",
+  "permissions": ["contextMenus", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "縦書きビューアを起動"
   },
-  "background": {
-    "service_worker": "background.js"
-  }
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

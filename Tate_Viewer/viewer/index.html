@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>縦書きビューア</title>
+
+  <link rel="stylesheet" href="./css/snviewer.min.css" />
+
+  <style>
+    /* CSSはHTML内に書いてもOKですが、JSはダメです */
+    body {
+      background-color: #333;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #snv-app {
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="snv-app">
+    <h1 id="nvl-title">閲覧中のテキスト</h1>
+    <div id="novel-body"></div>
+    <div id="snv-loading" class="snv-loader-wrapper">
+      <div class="snv-loading"><span>Loading...</span></div>
+    </div>
+  </div>
+
+  <script src="./js/snviewer.min.js"></script>
+
+  <script src="controller.js"></script>
+</body>
+
+</html>
