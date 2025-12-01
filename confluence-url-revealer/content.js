@@ -1,57 +1,103 @@
 (function () {
   const LOG_PREFIX = "[Oreore URL Revealer]";
-  const URL_SPAN_CLASS = "oreore-url-display"; // 重複防止用のクラス名
+  const URL_SPAN_CLASS = "oreore-url-display";
+  const SHOW_CLASS = "oreore-show-urls";
+  const STORAGE_KEY = "oreore_url_visible";
+
+  // スタイル定義
+  const style = document.createElement("style");
+  style.textContent = `
+    .${URL_SPAN_CLASS} {
+      display: none;
+      font-size: 0.75em;
+      color: #5e6c84;
+      margin-left: 6px;
+      font-weight: normal;
+      font-family: monospace;
+    }
+    body.${SHOW_CLASS} .${URL_SPAN_CLASS} {
+      display: inline;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 設定読み込み
+  chrome.storage.local.get([STORAGE_KEY], (result) => {
+    const shouldShow = result[STORAGE_KEY] !== false;
+    if (shouldShow) {
+      document.body.classList.add(SHOW_CLASS);
+    }
+  });
+
+  // 切り替え＆保存
+  function toggleDisplay() {
+    const isNowOn = document.body.classList.toggle(SHOW_CLASS);
+    chrome.storage.local.set({ [STORAGE_KEY]: isNowOn });
+  }
+
+  chrome.runtime.onMessage.addListener((request) => {
+    if (request.command === "toggle_url_display") {
+      toggleDisplay();
+    }
+  });
 
   function revealUrls() {
-    // 1. data-card-url 属性を持つすべての要素を探す
-    const cards = document.querySelectorAll("[data-card-url]");
+    const links = document.querySelectorAll("a[href]");
+    const currentLocation = window.location.href.split("#")[0];
 
-    cards.forEach((card) => {
-      // 2. リンク要素(aタグ)を探す
-      const link = card.querySelector("a");
-      if (!link) return;
+    links.forEach((link) => {
+      if (link.querySelector(`.${URL_SPAN_CLASS}`)) return;
+      if (link.dataset.oreoreProcessed) return;
 
-      const url = card.getAttribute("data-card-url");
-      if (!url) return;
+      // --- 除外エリア設定 ---
 
-      // 3. 既に我々が追加したURL表示パーツがあるかチェック
-      if (link.querySelector(`.${URL_SPAN_CLASS}`)) {
-        return; // あれば何もしない
+      // 1. サイドバー (nav)
+      if (link.closest("nav")) {
+        link.dataset.oreoreProcessed = "true";
+        return;
       }
 
-      // 4. URLを表示するパーツを作成
+      // 2. ページヘッダー (最終更新、編集ボタンなど) ★ここを追加
+      if (link.closest('[data-testid="content-header-container"]')) {
+        link.dataset.oreoreProcessed = "true";
+        return;
+      }
+
+      // --- 基本フィルター ---
+
+      const url = link.href;
+      if (!url || !url.startsWith("http")) return;
+
+      const targetLocation = url.split("#")[0];
+      if (currentLocation === targetLocation) return;
+
+      const rawHref = link.getAttribute("href");
+      if (rawHref && rawHref.startsWith("#")) return;
+
+      const text = link.innerText.trim();
+      if (!text) return;
+      if (text === url || text.includes(url)) {
+        link.dataset.oreoreProcessed = "true";
+        return;
+      }
+
+      // --- URL表示 ---
       const span = document.createElement("span");
-      span.className = URL_SPAN_CLASS; // 目印クラスをつける
-      span.style.fontSize = "0.75em";
-      span.style.color = "#5e6c84"; // Confluenceっぽい薄いグレー
-      span.style.marginLeft = "6px";
-      span.style.fontWeight = "normal";
-      span.style.fontFamily = "monospace"; // URLっぽく等幅フォントで
+      span.className = URL_SPAN_CLASS;
       span.textContent = `(${url})`;
 
-      // 5. リンクの中にそっと追加する（既存の中身は消さない）
       link.appendChild(span);
+      link.dataset.oreoreProcessed = "true";
     });
   }
 
-  // 初回実行
   revealUrls();
-
-  // 監視設定（Reactなどの再描画にしつこく追従する）
-  const observer = new MutationObserver(() => {
-    revealUrls();
-  });
-
+  const observer = new MutationObserver(revealUrls);
   observer.observe(document.body, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["data-card-url", "href"], // 属性変化も監視
+    attributeFilter: ["href", "data-card-url"],
   });
-
-  // ダメ押しの定期実行（3秒ごと）
-  // 複雑な描画更新で消された場合に復活させるため
   setInterval(revealUrls, 3000);
-
-  console.log(`${LOG_PREFIX} Watching for smart links...`);
 })();

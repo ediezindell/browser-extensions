@@ -1,9 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Confluence URL Revealer",
-  "version": "1.0.0",
-  "description": "スマートリンクのタイトル横にURLを強制表示します",
-  "permissions": [],
+  "version": "1.2.0",
+  "description": "スマートリンクのURLを表示（設定を記憶します）",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_title": "URL表示を切り替え"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
